@@ -202,21 +202,26 @@ function initRadar() {
         fill: true
       }]
     },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        r: {
-          min: 0,
-          max: 1,
-          ticks: { display: false },
-          grid: { circular: true },
-          angleLines: { color: 'rgba(255,255,255,0.12)' },
-          pointLabels: { color: '#9ca3af', font: { size: 11 } }
-        }
-      },
-      plugins: { legend: { display: false } }
+options: {
+  responsive: true,
+  maintainAspectRatio: false,
+  layout: { padding: 20 },
+  scales: {
+    r: {
+      min: 0,
+      max: 1,
+      ticks: { display: false },
+      grid: { circular: true },
+      angleLines: { color: 'rgba(255,255,255,0.18)' },
+      pointLabels: {
+        color: '#e5e7eb',
+        font: { size: 16, weight: '600', family: 'system-ui, -apple-system, Segoe UI, Roboto, Arial' }
+      }
     }
+  },
+  plugins: { legend: { display: false } }
+}
+
   });
 }
 

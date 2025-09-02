@@ -155,3 +155,17 @@ body {
 .panel-right { min-height: 360px; }
 .panel-right canvas { width: 100% !important; height: 320px !important; }
 .summary-card canvas { width: 100% !important; height: 360px !important; }
+
+/* Give the live radar more vertical space */
+.panel-right { min-height: 480px; }
+.panel-right canvas { width: 100% !important; height: 420px !important; }
+
+/* Give the summary radar more vertical space */
+.summary-card canvas { width: 100% !important; height: 460px !important; }
+
+/* Keep it usable on small screens */
+@media (max-width: 600px) {
+  .panel-right { min-height: 420px; }
+  .panel-right canvas { height: 360px !important; }
+  .summary-card canvas { height: 420px !important; }
+}
