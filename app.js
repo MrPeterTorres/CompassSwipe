@@ -56,7 +56,8 @@ const state = {
   kept: [],
   maxSpokes: 8,
   radar: null,
-  finalRadar: null
+  finalRadar: null,
+  labelsLive: Array(8).fill("•") // short placeholders to stabilize layout
 };
 
 // ----- Elements -----
@@ -203,21 +204,20 @@ function handleSkip() {
 function handleKeep() {
   const t = state.topics[state.index];
   state.kept.push(t);
-  updateRadarWithTopic();
+  updateRadarWithTopic(t);
   state.index++;
   updateProgress();
   renderCurrentCard();
 }
 
-// Live radar: keep labels empty during selection to prevent reflow
+// ----- Live radar (with stable placeholders) -----
 function initRadar() {
   const ctx = els.radarCanvas.getContext('2d');
-  const labels = Array(state.maxSpokes).fill("");
 
   state.radar = new Chart(ctx, {
     type: 'radar',
     data: {
-      labels,
+      labels: state.labelsLive, // bullets to start, then replaced with single-word labels
       datasets: [{
         label: 'Selected Topics',
         data: Array(state.maxSpokes).fill(0),
@@ -228,7 +228,7 @@ function initRadar() {
       responsive: true,
       maintainAspectRatio: false,
       animation: { duration: 0 },
-      layout: { padding: 36 },
+      layout: { padding: 42 },
       scales: {
         r: {
           min: 0,
@@ -237,9 +237,9 @@ function initRadar() {
           grid: { circular: true },
           angleLines: { color: 'rgba(255,255,255,0.18)' },
           pointLabels: {
-            display: false,              // no labels during selection
+            display: true,
             color: '#e5e7eb',
-            padding: 10,
+            padding: 12,
             font: { size: 18, weight: '700', family: 'system-ui, -apple-system, Segoe UI, Roboto, Arial' }
           }
         }
@@ -249,22 +249,27 @@ function initRadar() {
   });
 }
 
-// Mark filled spokes without changing labels to avoid wobble
-function updateRadarWithTopic() {
+function updateRadarWithTopic(topic) {
   const chart = state.radar;
   if (!chart) return;
-  const idx = state.kept.length - 1;
-  const i = Math.min(idx, state.maxSpokes - 1);
+  const i = Math.min(state.kept.length - 1, state.maxSpokes - 1);
+
+  // Replace the short placeholder with the one-word label
+  state.labelsLive[i] = oneWordLabel(topic.title);
+  chart.data.labels = state.labelsLive;
+
+  // Mark the spoke as selected
   chart.data.datasets[0].data[i] = 1;
   chart.update();
 }
 
+// ----- Summary -----
 function showSummary() {
   const labels = Array(state.maxSpokes).fill("");
   const values = Array(state.maxSpokes).fill(0);
 
   state.kept.slice(0, state.maxSpokes).forEach((t, i) => {
-    labels[i] = oneWordLabel(t.title); // single-word labels on final chart
+    labels[i] = oneWordLabel(t.title);
     values[i] = 1;
   });
 
@@ -273,10 +278,10 @@ function showSummary() {
     .map(t => `<li><i class="${t.icon}" aria-hidden="true"></i> ${t.title}</li>`)
     .join('');
 
-  // Nudge height in JS for hosts that ignore CSS overrides
+  // Ensure canvas height even if host CSS is stubborn
   try {
     els.finalRadar.style.width = '100%';
-    els.finalRadar.style.height = '460px';
+    els.finalRadar.style.height = '500px';
   } catch {}
 
   const ctx = els.finalRadar.getContext('2d');
@@ -295,7 +300,7 @@ function showSummary() {
       responsive: true,
       maintainAspectRatio: false,
       animation: { duration: 0 },
-      layout: { padding: 36 },
+      layout: { padding: 42 },
       scales: {
         r: {
           min: 0,
@@ -306,7 +311,7 @@ function showSummary() {
           pointLabels: {
             display: true,
             color: '#e5e7eb',
-            padding: 10,
+            padding: 12,
             font: { size: 18, weight: '700', family: 'system-ui, -apple-system, Segoe UI, Roboto, Arial' }
           }
         }
@@ -324,8 +329,10 @@ function restart() {
   state.topics = [...TOPICS];
   shuffle(state.topics);
 
+  // Reset labels to bullets and clear data
+  state.labelsLive = Array(state.maxSpokes).fill("•");
   if (state.radar) {
-    state.radar.data.labels = Array(state.maxSpokes).fill("");
+    state.radar.data.labels = state.labelsLive;
     state.radar.data.datasets[0].data = Array(state.maxSpokes).fill(0);
     state.radar.update();
   }
