@@ -210,9 +210,15 @@ function handleKeep() {
   renderCurrentCard();
 }
 
-// ----- Live radar with labels but no point markers -----
+// ----- Fixed radar initialization -----
 function initRadar() {
   const ctx = els.radarCanvas.getContext('2d');
+  
+  // Set explicit canvas size to prevent automatic resizing
+  els.radarCanvas.width = 400;
+  els.radarCanvas.height = 400;
+  els.radarCanvas.style.width = '400px';
+  els.radarCanvas.style.height = '400px';
 
   state.radar = new Chart(ctx, {
     type: 'radar',
@@ -224,31 +230,58 @@ function initRadar() {
         fill: true,
         pointRadius: 0,
         pointHitRadius: 0,
-        pointHoverRadius: 0
+        pointHoverRadius: 0,
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        borderColor: 'rgba(59, 130, 246, 0.8)',
+        borderWidth: 2
       }]
     },
     options: {
-      responsive: true,
-      maintainAspectRatio: false,
+      responsive: false, // KEY: Disable responsive behavior
+      maintainAspectRatio: true,
       animation: { duration: 0 },
-      layout: { padding: 42 },
+      layout: { 
+        padding: {
+          top: 50,
+          right: 50,
+          bottom: 50,
+          left: 50
+        }
+      },
       elements: { point: { radius: 0, hitRadius: 0, hoverRadius: 0 } },
       scales: {
         r: {
           min: 0,
           max: 1,
-          ticks: { display: false },
-          grid: { circular: true },
+          ticks: { 
+            display: false,
+            stepSize: 0.2
+          },
+          grid: { 
+            circular: true,
+            color: 'rgba(255,255,255,0.1)'
+          },
           angleLines: { color: 'rgba(255,255,255,0.18)' },
           pointLabels: {
             display: true,
             color: '#e5e7eb',
-            padding: 12,
-            font: { size: 18, weight: '700', family: 'system-ui, -apple-system, Segoe UI, Roboto, Arial' }
+            padding: 20, // Increased padding for consistent spacing
+            font: { 
+              size: 14, // Slightly smaller to fit better
+              weight: '600', 
+              family: 'system-ui, -apple-system, Segoe UI, Roboto, Arial' 
+            },
+            // Force consistent positioning
+            callback: function(label) {
+              return label || ''; // Show empty string instead of undefined
+            }
           }
         }
       },
-      plugins: { legend: { display: false }, tooltip: { enabled: false } }
+      plugins: { 
+        legend: { display: false }, 
+        tooltip: { enabled: false } 
+      }
     }
   });
 }
@@ -258,13 +291,15 @@ function updateRadarWithTopic(topic) {
   if (!chart) return;
   const i = Math.min(state.kept.length - 1, state.maxSpokes - 1);
 
-  // set the one-word label for this spoke
+  // Set the one-word label for this spoke
   state.labelsLive[i] = oneWordLabel(topic.title);
-  chart.data.labels = state.labelsLive;
+  chart.data.labels = [...state.labelsLive]; // Create new array to trigger update
 
-  // mark the spoke
+  // Mark the spoke
   chart.data.datasets[0].data[i] = 1;
-  chart.update();
+  
+  // Update without animation to prevent shifting
+  chart.update('none');
 }
 
 // ----- Summary -----
@@ -282,14 +317,15 @@ function showSummary() {
     .map(t => `<li><i class="${t.icon}" aria-hidden="true"></i> ${t.title}</li>`)
     .join('');
 
-  // give the canvas explicit size in case CSS is overridden by host
-  try {
-    els.finalRadar.style.width = '100%';
-    els.finalRadar.style.height = '500px';
-  } catch {}
+  // Set explicit size for final radar chart
+  els.finalRadar.width = 500;
+  els.finalRadar.height = 500;
+  els.finalRadar.style.width = '500px';
+  els.finalRadar.style.height = '500px';
 
   const ctx = els.finalRadar.getContext('2d');
   if (state.finalRadar) state.finalRadar.destroy();
+  
   state.finalRadar = new Chart(ctx, {
     type: 'radar',
     data: {
@@ -300,31 +336,51 @@ function showSummary() {
         fill: true,
         pointRadius: 0,
         pointHitRadius: 0,
-        pointHoverRadius: 0
+        pointHoverRadius: 0,
+        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+        borderColor: 'rgba(59, 130, 246, 1)',
+        borderWidth: 3
       }]
     },
     options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: { duration: 0 },
-      layout: { padding: 42 },
+      responsive: false, // KEY: Disable responsive behavior
+      maintainAspectRatio: true,
+      animation: { duration: 800 }, // Nice animation for final chart
+      layout: { 
+        padding: {
+          top: 60,
+          right: 60,
+          bottom: 60,
+          left: 60
+        }
+      },
       elements: { point: { radius: 0, hitRadius: 0, hoverRadius: 0 } },
       scales: {
         r: {
           min: 0,
           max: 1,
           ticks: { display: false },
-          grid: { circular: true },
+          grid: { 
+            circular: true,
+            color: 'rgba(255,255,255,0.1)'
+          },
           angleLines: { color: 'rgba(255,255,255,0.18)' },
           pointLabels: {
             display: true,
             color: '#e5e7eb',
-            padding: 12,
-            font: { size: 18, weight: '700', family: 'system-ui, -apple-system, Segoe UI, Roboto, Arial' }
+            padding: 25,
+            font: { 
+              size: 16, 
+              weight: '700', 
+              family: 'system-ui, -apple-system, Segoe UI, Roboto, Arial' 
+            }
           }
         }
       },
-      plugins: { legend: { display: false }, tooltip: { enabled: false } }
+      plugins: { 
+        legend: { display: false }, 
+        tooltip: { enabled: false } 
+      }
     }
   });
 
@@ -339,9 +395,9 @@ function restart() {
 
   state.labelsLive = Array(state.maxSpokes).fill("");
   if (state.radar) {
-    state.radar.data.labels = state.labelsLive;
+    state.radar.data.labels = [...state.labelsLive];
     state.radar.data.datasets[0].data = Array(state.maxSpokes).fill(0);
-    state.radar.update();
+    state.radar.update('none'); // Update without animation
   }
   els.summary.classList.add('hidden');
   updateProgress();

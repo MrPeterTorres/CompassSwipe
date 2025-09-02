@@ -110,13 +110,38 @@ body {
 .btn-skip { border-color: color-mix(in srgb, var(--skip) 40%, transparent); }
 .btn-restart { margin-top: 14px; }
 
+/* FIXED: Lock the panel and chart in place */
 .panel-right {
   background: var(--panel);
   border-radius: 16px;
   padding: 16px;
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06);
+  /* Fixed dimensions to prevent layout shift */
+  width: 380px;
+  height: 500px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
-.panel-right h2 { margin: 0 0 10px 0; font-size: 18px; }
+
+.panel-right h2 { 
+  margin: 0 0 20px 0; 
+  font-size: 18px; 
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* FIXED: Chart container with exact positioning */
+.panel-right canvas {
+  /* Override any dynamic sizing from Chart.js */
+  width: 400px !important;
+  height: 400px !important;
+  max-width: none !important;
+  max-height: none !important;
+  /* Center the chart */
+  display: block;
+  margin: 0 auto;
+}
 
 .empty { color: var(--muted); }
 
@@ -127,85 +152,87 @@ body {
   place-items: center;
   background: rgba(0,0,0,0.6);
   padding: 20px;
+  z-index: 1000;
 }
 .summary.hidden { display: none; }
+
 .summary-card {
   width: min(800px, 100%);
+  max-height: 90vh;
   background: var(--card);
   border-radius: 16px;
   padding: 20px;
   box-shadow: 0 12px 24px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-y: auto;
 }
+
+.summary-card h2 {
+  margin: 0 0 20px 0;
+  text-align: center;
+}
+
+/* Fixed size for summary chart */
+.summary-card canvas {
+  width: 500px !important;
+  height: 500px !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 0 20px 0;
+}
+
 .summary-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill,minmax(220px,1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 8px;
-  margin: 12px 0 0 0;
+  margin: 0 0 20px 0;
   padding: 0;
   list-style: none;
+  width: 100%;
+  max-width: 600px;
 }
+
 .summary-list li {
   padding: 8px 10px;
   background: rgba(255,255,255,0.04);
   border-radius: 10px;
   font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-/* Make right panel chart flexible */
-.panel-right { min-height: 360px; }
-.panel-right canvas { width: 100% !important; height: 320px !important; }
-.summary-card canvas { width: 100% !important; height: 360px !important; }
+/* Responsive adjustments */
+@media (max-width: 900px) {
+  .panel-right {
+    width: auto;
+    height: auto;
+    min-height: 460px;
+  }
+}
 
-/* Give the live radar more vertical space */
-.panel-right { min-height: 480px; }
-.panel-right canvas { width: 100% !important; height: 420px !important; }
-
-/* Give the summary radar more vertical space */
-.summary-card canvas { width: 100% !important; height: 460px !important; }
-
-/* Keep it usable on small screens */
 @media (max-width: 600px) {
-  .panel-right { min-height: 420px; }
-  .panel-right canvas { height: 360px !important; }
-  .summary-card canvas { height: 420px !important; }
+  .panel-right canvas {
+    width: 350px !important;
+    height: 350px !important;
+  }
+  
+  .summary-card canvas {
+    width: 400px !important;
+    height: 400px !important;
+  }
 }
 
-/* Summary layout so the chart can expand vertically */
-.summary-card {
-  max-height: 92vh;
-  display: grid;
-  grid-template-rows: auto auto 1fr auto; /* title, chart, list, button */
-  gap: 12px;
+@media (max-width: 400px) {
+  .panel-right canvas {
+    width: 300px !important;
+    height: 300px !important;
+  }
+  
+  .summary-card canvas {
+    width: 320px !important;
+    height: 320px !important;
+  }
 }
-
-.summary-card canvas {
-  width: 100% !important;
-  height: 56vh !important; /* taller chart in the dialog */
-}
-
-/* Keep it usable on smaller screens */
-@media (max-width: 700px) {
-  .summary-card canvas { height: 48vh !important; }
-}
-
-/* Lock and center both charts so labels don't shift layout */
-.panel-right { min-height: 520px; }
-#radarChart,
-#finalRadar {
-  display: block;
-  margin: 0 auto;
-  width: 100% !important;
-  height: 440px !important;
-}
-
-.summary-card {
-  max-height: 92vh;
-  display: grid;
-  grid-template-rows: auto auto 1fr auto;
-  gap: 12px;
-}
-.summary-list { overflow: auto; }
-@media (max-width: 600px) {
-  #finalRadar { height: 380px !important; }
-}
-
