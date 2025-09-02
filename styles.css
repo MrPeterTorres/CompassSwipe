@@ -169,3 +169,21 @@ body {
   .panel-right canvas { height: 360px !important; }
   .summary-card canvas { height: 420px !important; }
 }
+
+/* Summary layout so the chart can expand vertically */
+.summary-card {
+  max-height: 92vh;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto; /* title, chart, list, button */
+  gap: 12px;
+}
+
+.summary-card canvas {
+  width: 100% !important;
+  height: 56vh !important; /* taller chart in the dialog */
+}
+
+/* Keep it usable on smaller screens */
+@media (max-width: 700px) {
+  .summary-card canvas { height: 48vh !important; }
+}

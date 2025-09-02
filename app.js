@@ -190,7 +190,7 @@ function handleKeep() {
 
 function initRadar() {
   const ctx = els.radarCanvas.getContext('2d');
-  const labels = Array(state.maxSpokes).fill('Spoke');
+  const labels = Array(state.maxSpokes).fill('');
 
   state.radar = new Chart(ctx, {
     type: 'radar',
@@ -205,7 +205,7 @@ function initRadar() {
 options: {
   responsive: true,
   maintainAspectRatio: false,
-  layout: { padding: 20 },
+  layout: { padding: 28 },
   scales: {
     r: {
       min: 0,
@@ -215,7 +215,7 @@ options: {
       angleLines: { color: 'rgba(255,255,255,0.18)' },
       pointLabels: {
         color: '#e5e7eb',
-        font: { size: 16, weight: '600', family: 'system-ui, -apple-system, Segoe UI, Roboto, Arial' }
+        font: { size: 18, weight: '700', family: 'system-ui, -apple-system, Segoe UI, Roboto, Arial' }
       }
     }
   },
@@ -269,20 +269,25 @@ function showSummary() {
       }]
     },
     options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
+    responsive: true,
+    maintainAspectRatio: false,
+    layout: { padding: 28 },
+    scales: {
         r: {
-          min: 0,
-          max: 1,
-          ticks: { display: false },
-          grid: { circular: true },
-          angleLines: { color: 'rgba(255,255,255,0.12)' },
-          pointLabels: { color: '#9ca3af', font: { size: 11 } }
+        min: 0,
+        max: 1,
+        ticks: { display: false },
+        grid: { circular: true },
+        angleLines: { color: 'rgba(255,255,255,0.18)' },
+        pointLabels: {
+            color: '#e5e7eb',
+            font: { size: 18, weight: '700', family: 'system-ui, -apple-system, Segoe UI, Roboto, Arial' }
         }
-      },
-      plugins: { legend: { display: false } }
+        }
+    },
+    plugins: { legend: { display: false } }
     }
+
   });
 
   els.summary.classList.remove('hidden');
@@ -296,7 +301,7 @@ function restart() {
   shuffle(state.topics);
   // Reset live radar
   if (state.radar) {
-    state.radar.data.labels = Array(state.maxSpokes).fill('Spoke');
+    state.radar.data.labels = Array(state.maxSpokes).fill('');
     state.radar.data.datasets[0].data = Array(state.maxSpokes).fill(0);
     state.radar.update();
   }
