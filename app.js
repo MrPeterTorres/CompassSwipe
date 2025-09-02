@@ -57,7 +57,7 @@ const state = {
   maxSpokes: 8,
   radar: null,
   finalRadar: null,
-  labelsLive: Array(8).fill("          ") // short placeholders to stabilize layout
+  labelsLive: Array(8).fill("") // start blank, fill as user keeps topics
 };
 
 // ----- Elements -----
@@ -210,18 +210,21 @@ function handleKeep() {
   renderCurrentCard();
 }
 
-// ----- Live radar (with stable placeholders) -----
+// ----- Live radar with labels but no point markers -----
 function initRadar() {
   const ctx = els.radarCanvas.getContext('2d');
 
   state.radar = new Chart(ctx, {
     type: 'radar',
     data: {
-      labels: state.labelsLive, // bullets to start, then replaced with single-word labels
+      labels: state.labelsLive,
       datasets: [{
         label: 'Selected Topics',
         data: Array(state.maxSpokes).fill(0),
-        fill: true
+        fill: true,
+        pointRadius: 0,
+        pointHitRadius: 0,
+        pointHoverRadius: 0
       }]
     },
     options: {
@@ -229,6 +232,7 @@ function initRadar() {
       maintainAspectRatio: false,
       animation: { duration: 0 },
       layout: { padding: 42 },
+      elements: { point: { radius: 0, hitRadius: 0, hoverRadius: 0 } },
       scales: {
         r: {
           min: 0,
@@ -244,7 +248,7 @@ function initRadar() {
           }
         }
       },
-      plugins: { legend: { display: false } }
+      plugins: { legend: { display: false }, tooltip: { enabled: false } }
     }
   });
 }
@@ -254,11 +258,11 @@ function updateRadarWithTopic(topic) {
   if (!chart) return;
   const i = Math.min(state.kept.length - 1, state.maxSpokes - 1);
 
-  // Replace the short placeholder with the one-word label
+  // set the one-word label for this spoke
   state.labelsLive[i] = oneWordLabel(topic.title);
   chart.data.labels = state.labelsLive;
 
-  // Mark the spoke as selected
+  // mark the spoke
   chart.data.datasets[0].data[i] = 1;
   chart.update();
 }
@@ -278,7 +282,7 @@ function showSummary() {
     .map(t => `<li><i class="${t.icon}" aria-hidden="true"></i> ${t.title}</li>`)
     .join('');
 
-  // Ensure canvas height even if host CSS is stubborn
+  // give the canvas explicit size in case CSS is overridden by host
   try {
     els.finalRadar.style.width = '100%';
     els.finalRadar.style.height = '500px';
@@ -293,7 +297,10 @@ function showSummary() {
       datasets: [{
         label: 'Your 8 Topics',
         data: values,
-        fill: true
+        fill: true,
+        pointRadius: 0,
+        pointHitRadius: 0,
+        pointHoverRadius: 0
       }]
     },
     options: {
@@ -301,6 +308,7 @@ function showSummary() {
       maintainAspectRatio: false,
       animation: { duration: 0 },
       layout: { padding: 42 },
+      elements: { point: { radius: 0, hitRadius: 0, hoverRadius: 0 } },
       scales: {
         r: {
           min: 0,
@@ -316,7 +324,7 @@ function showSummary() {
           }
         }
       },
-      plugins: { legend: { display: false } }
+      plugins: { legend: { display: false }, tooltip: { enabled: false } }
     }
   });
 
@@ -329,8 +337,7 @@ function restart() {
   state.topics = [...TOPICS];
   shuffle(state.topics);
 
-  // Reset labels to bullets and clear data
-  state.labelsLive = Array(state.maxSpokes).fill("          ");
+  state.labelsLive = Array(state.maxSpokes).fill("");
   if (state.radar) {
     state.radar.data.labels = state.labelsLive;
     state.radar.data.datasets[0].data = Array(state.maxSpokes).fill(0);

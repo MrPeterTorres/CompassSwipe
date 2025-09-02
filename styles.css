@@ -206,6 +206,6 @@ body {
 }
 .summary-list { overflow: auto; }
 @media (max-width: 600px) {
-  #finalRadar { height: 800px !important; }
+  #finalRadar { height: 380px !important; }
 }
 
