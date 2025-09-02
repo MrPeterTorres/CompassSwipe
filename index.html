@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Empowered Compass - Topic Swipe</title>
+
+  <!-- Font Awesome icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkfG3j6S0Z8a2iZ9YkZbKxQyY7b5V6Wb8wIYHh1i4w8z0P4nQ8N+FQ7wQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+  <link rel="stylesheet" href="styles.css" />
+
+  <!-- Chart.js for radar chart -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <header class="app-header">
+    <h1>Topic Swipe</h1>
+    <p class="hint">Use ← to Skip. Use → to Keep.</p>
+  </header>
+
+  <main class="layout">
+    <section class="stack-left">
+      <div id="progress" class="progress">
+        <div id="progressText">0 of 0</div>
+        <div class="bar-outer">
+          <div id="barInner" class="bar-inner" style="width:0%"></div>
+        </div>
+      </div>
+
+      <div id="cardArea" class="card-area">
+        <!-- Cards will render here -->
+        <div class="empty">Loading…</div>
+      </div>
+
+      <div class="controls">
+        <button id="skipBtn" class="btn btn-skip">
+          <i class="fa-solid fa-xmark"></i>
+          <span>Skip</span>
+        </button>
+        <button id="keepBtn" class="btn btn-keep">
+          <i class="fa-solid fa-check"></i>
+          <span>Keep</span>
+        </button>
+      </div>
+    </section>
+
+    <aside class="panel-right">
+      <h2>Your Radar</h2>
+      <canvas id="radarChart" width="400" height="400" aria-label="Radar chart"></canvas>
+    </aside>
+  </main>
+
+  <div id="summary" class="summary hidden" role="dialog" aria-modal="true" aria-labelledby="summaryTitle">
+    <div class="summary-card">
+      <h2 id="summaryTitle">Your 8 Saved Topics</h2>
+      <canvas id="finalRadar" width="400" height="400" aria-label="Final radar chart"></canvas>
+      <ul id="summaryList" class="summary-list"></ul>
+      <button id="restartBtn" class="btn btn-restart">
+        <i class="fa-solid fa-rotate-right"></i>
+        Restart
+      </button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
