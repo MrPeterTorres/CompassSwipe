@@ -150,3 +150,8 @@ body {
   border-radius: 10px;
   font-size: 14px;
 }
+
+/* Make right panel chart flexible */
+.panel-right { min-height: 360px; }
+.panel-right canvas { width: 100% !important; height: 320px !important; }
+.summary-card canvas { width: 100% !important; height: 360px !important; }
