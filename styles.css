@@ -193,19 +193,19 @@ body {
 #radarChart,
 #finalRadar {
   display: block;
-  margin: 0 auto;         /* center the canvas in its container */
-  width: 100% !important; 
-  height: 440px !important;  /* fixed height prevents reflow */
+  margin: 0 auto;
+  width: 100% !important;
+  height: 440px !important;
 }
 
-/* Summary card: let the list scroll, not the canvas */
 .summary-card {
   max-height: 92vh;
   display: grid;
-  grid-template-rows: auto auto 1fr auto; /* title, chart, list, button */
+  grid-template-rows: auto auto 1fr auto;
   gap: 12px;
 }
-.summary-list {
-  overflow: auto; 
-  min-height: 120px;
+.summary-list { overflow: auto; }
+@media (max-width: 600px) {
+  #finalRadar { height: 380px !important; }
 }
+
