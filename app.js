@@ -57,7 +57,7 @@ const state = {
   maxSpokes: 8,
   radar: null,
   finalRadar: null,
-  labelsLive: Array(8).fill("•") // short placeholders to stabilize layout
+  labelsLive: Array(8).fill("          ") // short placeholders to stabilize layout
 };
 
 // ----- Elements -----
@@ -330,7 +330,7 @@ function restart() {
   shuffle(state.topics);
 
   // Reset labels to bullets and clear data
-  state.labelsLive = Array(state.maxSpokes).fill("•");
+  state.labelsLive = Array(state.maxSpokes).fill("          ");
   if (state.radar) {
     state.radar.data.labels = state.labelsLive;
     state.radar.data.datasets[0].data = Array(state.maxSpokes).fill(0);
