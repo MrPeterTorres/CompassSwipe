@@ -187,3 +187,25 @@ body {
 @media (max-width: 700px) {
   .summary-card canvas { height: 48vh !important; }
 }
+
+/* Lock and center both charts so labels don't shift layout */
+.panel-right { min-height: 520px; }
+#radarChart,
+#finalRadar {
+  display: block;
+  margin: 0 auto;         /* center the canvas in its container */
+  width: 100% !important; 
+  height: 440px !important;  /* fixed height prevents reflow */
+}
+
+/* Summary card: let the list scroll, not the canvas */
+.summary-card {
+  max-height: 92vh;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto; /* title, chart, list, button */
+  gap: 12px;
+}
+.summary-list {
+  overflow: auto; 
+  min-height: 120px;
+}
