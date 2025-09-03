@@ -1,10 +1,9 @@
 // ===== Config =====
 const CONFIG = {
-  MAX_SPOKES: 8,            // how many spokes to fill
-  INITIAL_UNIQUE: 24,       // unique topics to start with
-  CHUNK_UNIQUE: 8,          // add this many uniques when we run low
-  RETESTS_PER_KEEP: 1,      // how many retests to schedule per first keep
-  RETEST_MIN_OFFSET: 5,     // retest will appear 5..9 cards later
+  MAX_SPOKES: 8,
+  CONFIRMATION_KEEPS: 3,   // needs 3 keeps to earn a spoke
+  EVICTION_SKIPS: 3,       // 3 skips on a spoke evicts it
+  RETEST_MIN_OFFSET: 5,
   RETEST_MAX_OFFSET: 9
 };
 
@@ -26,19 +25,19 @@ const TOPICS = [
   { title: "Infrastructure and Transportation", icon: "fa-solid fa-road", desc: "Build and maintain systems" },
   { title: "Technology and Data Privacy", icon: "fa-solid fa-user-shield", desc: "Rights in a digital world" },
   { title: "Corporate Regulation and Consumer Protection", icon: "fa-solid fa-scale-unbalanced", desc: "Rules for fair markets" },
-  { title: "Wages and Labor Rights", icon: "fa-solid fa-people-carry-box", desc: "Pay, benefits, and safety" },
+  { title: "Wages and Labor Rights", icon: "fa-solid fa-people-carry-box", desc: "Pay, benefits and safety" },
   { title: "Support for Small Businesses and Entrepreneurship", icon: "fa-solid fa-shop", desc: "Capital and less red tape" },
   { title: "Mental Health and Addiction Services", icon: "fa-solid fa-brain", desc: "Care access and stigma" },
   { title: "Campaign Finance Reform", icon: "fa-solid fa-landmark", desc: "Money in politics rules" },
-  { title: "Policing in Schools", icon: "fa-solid fa-graduation-cap", desc: "Safety, discipline, and equity" },
+  { title: "Policing in Schools", icon: "fa-solid fa-graduation-cap", desc: "Safety, discipline and equity" },
   { title: "Government Role in Childcare and Parental Leave", icon: "fa-solid fa-baby-carriage", desc: "Care access and paid time" },
   { title: "Internet Access and Digital Equity", icon: "fa-solid fa-wifi", desc: "Affordable broadband access" },
   { title: "Book Bans and Curriculum Restrictions in Schools", icon: "fa-solid fa-book", desc: "Content rules and oversight" },
   { title: "Religious Freedom and the Role of Religion in Government", icon: "fa-solid fa-church", desc: "Balance rights and neutrality" },
-  { title: "DEI Programs and Workplace Policy", icon: "fa-solid fa-people-group", desc: "Hiring, inclusion, outcomes" },
-  { title: "Israel-Palestine Conflict / War in Gaza", icon: "fa-solid fa-dove", desc: "War, civilians, and diplomacy" },
-  { title: "U.S. Military Support to Ukraine", icon: "fa-solid fa-helmet-safety", desc: "Aid, weapons, oversight" },
-  { title: "U.S.-China Relations and Taiwan", icon: "fa-solid fa-dragon", desc: "Trade, tech, and deterrence" },
+  { title: "DEI Programs and Workplace Policy", icon: "fa-solid fa-people-group", desc: "Hiring, inclusion and outcomes" },
+  { title: "Israel-Palestine Conflict / War in Gaza", icon: "fa-solid fa-dove", desc: "War, civilians and diplomacy" },
+  { title: "U.S. Military Support to Ukraine", icon: "fa-solid fa-helmet-safety", desc: "Aid, weapons and oversight" },
+  { title: "U.S.-China Relations and Taiwan", icon: "fa-solid fa-dragon", desc: "Trade, tech and deterrence" },
   { title: "Defense Treaties and NATO Commitments", icon: "fa-solid fa-shield", desc: "Allied burden sharing" },
   { title: "Foreign Aid and International Development", icon: "fa-solid fa-hand-holding-heart", desc: "Aid goals and accountability" },
   { title: "Global Refugee and Asylum Policies", icon: "fa-solid fa-person-walking-luggage", desc: "Protection and resettlement" },
@@ -47,11 +46,11 @@ const TOPICS = [
   { title: "Universal Basic Income (UBI)", icon: "fa-solid fa-hand-holding-dollar", desc: "Cash floors and work" },
   { title: "Artificial Intelligence and Job Displacement", icon: "fa-solid fa-robot", desc: "Automation and training" },
   { title: "Online Censorship and Platform Accountability", icon: "fa-solid fa-scale-balanced", desc: "Speech rules and harms" },
-  { title: "TikTok and Foreign-Owned Social Media Regulation", icon: "fa-brands fa-tiktok", desc: "Data, youth, and security" },
-  { title: "Misinformation and Algorithms in Democracy", icon: "fa-solid fa-diagram-project", desc: "Ranking, reach, and trust" },
+  { title: "TikTok and Foreign-Owned Social Media Regulation", icon: "fa-brands fa-tiktok", desc: "Data, youth and security" },
+  { title: "Misinformation and Algorithms in Democracy", icon: "fa-solid fa-diagram-project", desc: "Ranking, reach and trust" },
   { title: "Pandemic Preparedness and Vaccine Mandates", icon: "fa-solid fa-syringe", desc: "Readiness and public health" },
   { title: "Water Access and Drought Management", icon: "fa-solid fa-faucet-drip", desc: "Scarcity and rights" },
-  { title: "Food Security and Agricultural Policy", icon: "fa-solid fa-wheat-awn", desc: "Prices, farms, and aid" },
+  { title: "Food Security and Agricultural Policy", icon: "fa-solid fa-wheat-awn", desc: "Prices, farms and aid" },
   { title: "Natural Disasters and Climate Resilience Funding", icon: "fa-solid fa-house-flood-water", desc: "Rebuild and insure risk" },
   { title: "January 6th and the 2020 Election", icon: "fa-solid fa-flag-usa", desc: "Accountability and norms" },
   { title: "Term Limits and Congressional Reform", icon: "fa-solid fa-timeline", desc: "Turnover and rules" },
@@ -115,14 +114,13 @@ const oneWordLabel = t => LABEL[t] || "Topic";
 
 // ===== State =====
 const state = {
-  pool: [],            // objects with id, shown, kept
-  queue: [],           // items to present (refs to pool objects)
-  nextUnique: 0,       // pointer into shuffled pool
-  index: 0,            // pointer into queue
+  pool: [],          // topic objects with metrics
+  queue: [],         // presentation order, contains refs to pool objects
+  index: 0,          // pointer into queue
   radar: null,
   finalRadar: null,
-  labelsLive: Array(CONFIG.MAX_SPOKES).fill(""),
-  spokeFill: 0
+  spokes: Array(CONFIG.MAX_SPOKES).fill(null),  // topic ids or null
+  labelsLive: Array(CONFIG.MAX_SPOKES).fill("")
 };
 
 // ===== DOM =====
@@ -142,7 +140,7 @@ const els = {
 // ===== Init =====
 document.addEventListener('DOMContentLoaded', () => {
   bootstrapPool();
-  seedQueue(CONFIG.INITIAL_UNIQUE);
+  seedAllUniques();           // put all 50 in the queue
   updateProgress();
   renderCurrentCard();
   initRadar();
@@ -152,33 +150,40 @@ document.addEventListener('DOMContentLoaded', () => {
 // ===== Pool & Queue =====
 function bootstrapPool() {
   const shuffled = shuffle(TOPICS.map((t, i) => ({
-    ...t, id: i, shown: 0, kept: 0, retestsScheduled: 0, firstKeptOrder: Infinity
+    ...t,
+    id: i,
+    shown: 0,
+    kept: 0,
+    onSpokeSkips: 0,
+    onSpokeIndex: -1,
+    firstKeptAt: Infinity,
+    pendingRetests: 0
   })));
   state.pool = shuffled;
-  state.nextUnique = 0;
 }
 
-function seedQueue(count) {
-  const end = Math.min(state.nextUnique + count, state.pool.length);
-  for (let i = state.nextUnique; i < end; i++) state.queue.push(state.pool[i]);
-  state.nextUnique = end;
+function seedAllUniques() {
+  state.queue = [...state.pool];
 }
 
-function maybeExtendQueue() {
-  const needMoreUniques = state.spokeFill < CONFIG.MAX_SPOKES
-    && state.nextUnique < state.pool.length
-    && state.index >= state.queue.length - 2;
-  if (needMoreUniques) seedQueue(CONFIG.CHUNK_UNIQUE);
-  updateProgress();
-}
-
-function scheduleRetest(topic) {
-  if (topic.retestsScheduled >= CONFIG.RETESTS_PER_KEEP) return;
-  const offset = randInt(CONFIG.RETEST_MIN_OFFSET, CONFIG.RETEST_MAX_OFFSET);
+function insertRetest(topic, offsetMin = CONFIG.RETEST_MIN_OFFSET, offsetMax = CONFIG.RETEST_MAX_OFFSET) {
+  const offset = randInt(offsetMin, offsetMax);
   const pos = Math.min(state.index + offset, state.queue.length);
-  state.queue.splice(pos, 0, topic); // same object reference
-  topic.retestsScheduled += 1;
-  updateProgress();
+  state.queue.splice(pos, 0, topic);
+  topic.pendingRetests += 1;
+}
+
+function scheduleFaceoff(challenger) {
+  // Choose the most vulnerable current spoke
+  const idx = pickVulnerableSpoke();
+  if (idx === -1) return;
+
+  const incumbentId = state.spokes[idx];
+  const incumbent = getById(incumbentId);
+  // Insert the incumbent soon so user can skip it if they prefer the challenger
+  insertRetest(incumbent, 2, 3);
+  // Also reinsert the challenger so both appear near each other
+  insertRetest(challenger, 4, 6);
 }
 
 // ===== UI helpers =====
@@ -191,12 +196,12 @@ function updateProgress() {
 }
 
 function renderCurrentCard() {
-  if (state.spokeFill >= CONFIG.MAX_SPOKES) { showSummary(); return; }
+  if (finishConditionMet()) { showSummary(); return; }
 
-  // If we ran out of queue, try to extend before ending
+  // If we ran out of queue but we are not done, build another pass:
   if (state.index >= state.queue.length) {
-    maybeExtendQueue();
-    if (state.index >= state.queue.length) { showSummary(); return; }
+    refillWorkQueue();
+    updateProgress();
   }
 
   const t = state.queue[state.index];
@@ -254,12 +259,21 @@ function animateAnd(cb, dir=1) {
   setTimeout(cb, 150);
 }
 
-// ===== Keep/Skip =====
+// ===== Keep / Skip =====
 function handleSkip() {
   const t = state.queue[state.index];
   t.shown += 1;
+
+  if (t.onSpokeIndex !== -1) {
+    t.onSpokeSkips += 1;
+    if (t.onSpokeSkips >= CONFIG.EVICTION_SKIPS) {
+      evictFromSpoke(t.onSpokeIndex);
+      // Try to fill with best waiting candidate if any
+      placeBestWaitingCandidate();
+    }
+  }
+
   state.index += 1;
-  maybeExtendQueue();
   updateProgress();
   renderCurrentCard();
 }
@@ -267,28 +281,30 @@ function handleSkip() {
 function handleKeep() {
   const t = state.queue[state.index];
   t.shown += 1;
-  const firstTimeKeep = t.kept === 0;
   t.kept += 1;
-  if (t.firstKeptOrder === Infinity) t.firstKeptOrder = performance.now();
+  if (t.firstKeptAt === Infinity) t.firstKeptAt = performance.now();
 
-  if (firstTimeKeep && state.spokeFill < CONFIG.MAX_SPOKES) {
-    setLiveSpoke(state.spokeFill, oneWordLabel(t.title));
-    state.spokeFill += 1;
-    // schedule retest(s) now that the user showed interest
-    for (let i = 0; i < CONFIG.RETESTS_PER_KEEP; i++) scheduleRetest(t);
+  // Keep scheduling retests until it reaches confirmation threshold
+  if (t.kept < CONFIG.CONFIRMATION_KEEPS) insertRetest(t);
+
+  // If it just became eligible, place it or challenge an incumbent
+  if (t.kept >= CONFIG.CONFIRMATION_KEEPS && t.onSpokeIndex === -1) {
+    const free = firstFreeSpoke();
+    if (free !== -1) {
+      placeOnSpoke(t, free);
+    } else {
+      scheduleFaceoff(t);
+    }
   }
 
   state.index += 1;
-  maybeExtendQueue();
   updateProgress();
-
-  if (state.spokeFill >= CONFIG.MAX_SPOKES) { showSummary(); return; }
   renderCurrentCard();
 }
 
 // ===== Live radar =====
 function initRadar() {
-  // Fixed canvas so labels don’t reflow
+  // Fixed canvas to avoid reflow
   els.radarCanvas.width = 400;
   els.radarCanvas.height = 400;
   els.radarCanvas.style.width = '400px';
@@ -334,40 +350,57 @@ function initRadar() {
   });
 }
 
-function setLiveSpoke(spokeIndex, label) {
-  const i = Math.min(spokeIndex, CONFIG.MAX_SPOKES - 1);
-  state.labelsLive[i] = label;
+function placeOnSpoke(topic, spokeIndex) {
+  state.spokes[spokeIndex] = topic.id;
+  topic.onSpokeIndex = spokeIndex;
+  topic.onSpokeSkips = 0;
+
+  state.labelsLive[spokeIndex] = oneWordLabel(topic.title);
   state.radar.data.labels = [...state.labelsLive];
-  state.radar.data.datasets[0].data[i] = 1;
+  state.radar.data.datasets[0].data[spokeIndex] = 1;
   state.radar.update('none');
+}
+
+function evictFromSpoke(spokeIndex) {
+  const id = state.spokes[spokeIndex];
+  if (id == null) return;
+  const topic = getById(id);
+  topic.onSpokeIndex = -1;
+
+  state.spokes[spokeIndex] = null;
+  state.labelsLive[spokeIndex] = "";
+  state.radar.data.labels = [...state.labelsLive];
+  state.radar.data.datasets[0].data[spokeIndex] = 0;
+  state.radar.update('none');
+}
+
+function placeBestWaitingCandidate() {
+  const candidate = bestCandidate();
+  if (!candidate) return;
+  const idx = firstFreeSpoke();
+  if (idx === -1) return;
+  placeOnSpoke(candidate, idx);
 }
 
 // ===== Summary =====
 function showSummary() {
-  // Rank winners by kept desc, then earliest first keep, then fewest shown
-  const winners = [...state.pool]
-    .filter(t => t.kept > 0)
-    .sort((a, b) => {
-      if (b.kept !== a.kept) return b.kept - a.kept;
-      if (a.firstKeptOrder !== b.firstKeptOrder) return a.firstKeptOrder - b.firstKeptOrder;
-      return a.shown - b.shown;
-    })
-    .slice(0, CONFIG.MAX_SPOKES);
+  // Winners are whatever is on the spokes at the end
+  const winners = state.spokes
+    .map(id => getById(id))
+    .filter(Boolean);
 
-  // If user never kept 8, fill remaining from most seen topics
-  if (winners.length < CONFIG.MAX_SPOKES) {
-    const fillers = [...state.pool]
-      .filter(t => !winners.includes(t))
-      .sort((a, b) => b.shown - a.shown)
-      .slice(0, CONFIG.MAX_SPOKES - winners.length);
-    winners.push(...fillers);
+  // If fewer than 8 are filled, pad with best candidates
+  while (winners.length < CONFIG.MAX_SPOKES) {
+    const c = bestCandidate(winners.map(w => w.id));
+    if (!c) break;
+    winners.push(c);
   }
 
   els.summaryList.innerHTML = winners
     .map(t => `<li><i class="${t.icon}" aria-hidden="true"></i> ${t.title}</li>`)
     .join('');
 
-  // Final chart fixed size to avoid squish
+  // Fixed size to avoid squish
   els.finalRadar.width = 500;
   els.finalRadar.height = 500;
   els.finalRadar.style.width = '500px';
@@ -383,7 +416,7 @@ function showSummary() {
     data: {
       labels,
       datasets: [{
-        label: 'Your 8 Topics',
+        label: "Your 8 Topics",
         data: values,
         fill: true,
         pointRadius: 0,
@@ -419,18 +452,102 @@ function showSummary() {
   els.summary.classList.remove('hidden');
 }
 
+// ===== Finish condition and queue refills =====
+function finishConditionMet() {
+  const allShownOnce = state.pool.every(t => t.shown > 0);
+  const spokesFull = state.spokes.every(id => id !== null);
+  return allShownOnce && spokesFull;
+}
+
+// Build another pass if we have more work to do
+function refillWorkQueue() {
+  const needsFirstShow = state.pool.filter(t => t.shown === 0);
+  const needsConfirmation = state.pool.filter(t => t.kept > 0 && t.kept < CONFIG.CONFIRMATION_KEEPS);
+  const incumbentsNeedingChecks = state.spokes
+    .map(id => getById(id))
+    .filter(Boolean)
+    .filter(t => t.onSpokeSkips < CONFIG.EVICTION_SKIPS);
+
+  const challengersWaiting = state.pool.filter(t =>
+    t.kept >= CONFIG.CONFIRMATION_KEEPS && t.onSpokeIndex === -1
+  );
+
+  // If there are challengers and no free spokes, schedule faceoffs
+  if (challengersWaiting.length && !state.spokes.includes(null)) {
+    const c = shuffle([...challengersWaiting]).slice(0, 2);
+    c.forEach(ch => scheduleFaceoff(ch));
+  }
+
+  const nextRound = [
+    ...shuffle(needsFirstShow),
+    ...shuffle(needsConfirmation),
+    ...shuffle(incumbentsNeedingChecks),
+    ...shuffle(challengersWaiting)
+  ];
+
+  if (nextRound.length === 0) return; // nothing else to do
+
+  state.queue = nextRound;
+  state.index = 0;
+  updateProgress();
+}
+
+// ===== Spoke helpers =====
+function firstFreeSpoke() {
+  for (let i = 0; i < CONFIG.MAX_SPOKES; i++) {
+    if (state.spokes[i] === null) return i;
+  }
+  return -1;
+}
+
+function pickVulnerableSpoke() {
+  let bestIdx = -1;
+  let best = null;
+  for (let i = 0; i < CONFIG.MAX_SPOKES; i++) {
+    const id = state.spokes[i];
+    if (id === null) continue;
+    const t = getById(id);
+    const score = {
+      skips: t.onSpokeSkips,
+      kept: t.kept,
+      first: t.firstKeptAt
+    };
+    if (!best) { best = score; bestIdx = i; continue; }
+    // Prefer higher skips, then lower kept, then later firstKeptAt
+    if (score.skips > best.skips
+      || (score.skips === best.skips && score.kept < best.kept)
+      || (score.skips === best.skips && score.kept === best.kept && score.first > best.first)) {
+      best = score;
+      bestIdx = i;
+    }
+  }
+  return bestIdx;
+}
+
+function bestCandidate(excludeIds = []) {
+  const ex = new Set(excludeIds);
+  const cands = state.pool.filter(t =>
+    t.kept >= CONFIG.CONFIRMATION_KEEPS && t.onSpokeIndex === -1 && !ex.has(t.id)
+  );
+  if (!cands.length) return null;
+  cands.sort((a, b) => {
+    if (b.kept !== a.kept) return b.kept - a.kept;
+    if (a.firstKeptAt !== b.firstKeptAt) return a.firstKeptAt - b.firstKeptAt;
+    return a.shown - b.shown;
+  });
+  return cands[0];
+}
+
 // ===== Restart =====
 function restart() {
-  // reset state
   state.queue = [];
   state.index = 0;
+  state.spokes = Array(CONFIG.MAX_SPOKES).fill(null);
   state.labelsLive = Array(CONFIG.MAX_SPOKES).fill("");
-  state.spokeFill = 0;
 
   bootstrapPool();
-  seedQueue(CONFIG.INITIAL_UNIQUE);
+  seedAllUniques();
 
-  // reset live radar
   if (state.radar) {
     state.radar.data.labels = [...state.labelsLive];
     state.radar.data.datasets[0].data = Array(CONFIG.MAX_SPOKES).fill(0);
@@ -443,6 +560,8 @@ function restart() {
 }
 
 // ===== Utils =====
+function getById(id) { return state.pool.find(t => t.id === id) || null; }
+
 function shuffle(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -450,6 +569,4 @@ function shuffle(arr) {
   }
   return arr;
 }
-function randInt(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
+function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
