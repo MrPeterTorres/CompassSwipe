@@ -1,15 +1,15 @@
-// ====== Config ======
+// ===== Config =====
 const CONFIG = {
-  MAX_SPOKES: 8,              // final spokes
-  MAX_UNIQUE_TO_SHOW: 50,     // cap on unique topics shown from the pool of 50
-  RETESTS_PER_KEEP: 3,        // how many times to re-ask a kept topic
-  RETEST_OFFSET_MIN: 5,       // how far later in the queue a retest is inserted
-  RETEST_OFFSET_MAX: 10
+  MAX_SPOKES: 8,            // how many spokes to fill
+  INITIAL_UNIQUE: 24,       // unique topics to start with
+  CHUNK_UNIQUE: 8,          // add this many uniques when we run low
+  RETESTS_PER_KEEP: 1,      // how many retests to schedule per first keep
+  RETEST_MIN_OFFSET: 5,     // retest will appear 5..9 cards later
+  RETEST_MAX_OFFSET: 9
 };
 
-// ====== Topic pool (50) ======
+// ===== Topic pool (50) =====
 const TOPICS = [
-  // Civic & domestic policy
   { title: "Healthcare Access and Affordability", icon: "fa-solid fa-stethoscope", desc: "Lower costs and broader coverage" },
   { title: "Climate Change and Environmental Protection", icon: "fa-solid fa-leaf", desc: "Cut emissions and protect habitats" },
   { title: "Economic Inequality and Job Security", icon: "fa-solid fa-briefcase", desc: "Stability and fair opportunity" },
@@ -22,6 +22,7 @@ const TOPICS = [
   { title: "Taxation and Government Spending", icon: "fa-solid fa-coins", desc: "Priorities and tradeoffs" },
   { title: "Affordable Housing and Homelessness", icon: "fa-solid fa-house", desc: "Supply, zoning, and services" },
   { title: "Voting Rights and Electoral Integrity", icon: "fa-solid fa-square-check", desc: "Ballot access and trust" },
+  { title: "Foreign Policy and National Security", icon: "fa-solid fa-globe", desc: "Alliances and defense" },
   { title: "Infrastructure and Transportation", icon: "fa-solid fa-road", desc: "Build and maintain systems" },
   { title: "Technology and Data Privacy", icon: "fa-solid fa-user-shield", desc: "Rights in a digital world" },
   { title: "Corporate Regulation and Consumer Protection", icon: "fa-solid fa-scale-unbalanced", desc: "Rules for fair markets" },
@@ -35,17 +36,12 @@ const TOPICS = [
   { title: "Book Bans and Curriculum Restrictions in Schools", icon: "fa-solid fa-book", desc: "Content rules and oversight" },
   { title: "Religious Freedom and the Role of Religion in Government", icon: "fa-solid fa-church", desc: "Balance rights and neutrality" },
   { title: "DEI Programs and Workplace Policy", icon: "fa-solid fa-people-group", desc: "Hiring, inclusion, outcomes" },
-
-  // National security & foreign policy
-  { title: "Foreign Policy and National Security", icon: "fa-solid fa-globe", desc: "Alliances and defense" },
   { title: "Israel-Palestine Conflict / War in Gaza", icon: "fa-solid fa-dove", desc: "War, civilians, and diplomacy" },
   { title: "U.S. Military Support to Ukraine", icon: "fa-solid fa-helmet-safety", desc: "Aid, weapons, oversight" },
   { title: "U.S.-China Relations and Taiwan", icon: "fa-solid fa-dragon", desc: "Trade, tech, and deterrence" },
   { title: "Defense Treaties and NATO Commitments", icon: "fa-solid fa-shield", desc: "Allied burden sharing" },
   { title: "Foreign Aid and International Development", icon: "fa-solid fa-hand-holding-heart", desc: "Aid goals and accountability" },
   { title: "Global Refugee and Asylum Policies", icon: "fa-solid fa-person-walking-luggage", desc: "Protection and resettlement" },
-
-  // Economy & tech
   { title: "American Tariff Policy", icon: "fa-solid fa-arrow-trend-up", desc: "Tradeoffs for growth and jobs" },
   { title: "Supply Chain Resilience and Domestic Manufacturing", icon: "fa-solid fa-industry", desc: "Reshoring and security" },
   { title: "Universal Basic Income (UBI)", icon: "fa-solid fa-hand-holding-dollar", desc: "Cash floors and work" },
@@ -53,25 +49,19 @@ const TOPICS = [
   { title: "Online Censorship and Platform Accountability", icon: "fa-solid fa-scale-balanced", desc: "Speech rules and harms" },
   { title: "TikTok and Foreign-Owned Social Media Regulation", icon: "fa-brands fa-tiktok", desc: "Data, youth, and security" },
   { title: "Misinformation and Algorithms in Democracy", icon: "fa-solid fa-diagram-project", desc: "Ranking, reach, and trust" },
-
-  // Health, climate, disasters
   { title: "Pandemic Preparedness and Vaccine Mandates", icon: "fa-solid fa-syringe", desc: "Readiness and public health" },
   { title: "Water Access and Drought Management", icon: "fa-solid fa-faucet-drip", desc: "Scarcity and rights" },
   { title: "Food Security and Agricultural Policy", icon: "fa-solid fa-wheat-awn", desc: "Prices, farms, and aid" },
   { title: "Natural Disasters and Climate Resilience Funding", icon: "fa-solid fa-house-flood-water", desc: "Rebuild and insure risk" },
-
-  // Governance & institutions
   { title: "January 6th and the 2020 Election", icon: "fa-solid fa-flag-usa", desc: "Accountability and norms" },
   { title: "Term Limits and Congressional Reform", icon: "fa-solid fa-timeline", desc: "Turnover and rules" },
   { title: "National Debt and Deficit Spending", icon: "fa-solid fa-scale-unbalanced-flip", desc: "Debt paths and priorities" },
-
-  // Housing, vets, space
   { title: "Healthcare for Veterans and Military Support", icon: "fa-solid fa-ribbon", desc: "Care access and benefits" },
   { title: "Space Exploration and Federal Investment", icon: "fa-solid fa-moon", desc: "Science and spinoffs" }
 ];
 
-// ====== One-word labels ======
-const TITLE_TO_ONEWORD = {
+// ===== One-word labels =====
+const LABEL = {
   "Healthcare Access and Affordability": "Healthcare",
   "Climate Change and Environmental Protection": "Climate",
   "Economic Inequality and Job Security": "Economy",
@@ -121,21 +111,21 @@ const TITLE_TO_ONEWORD = {
   "Healthcare for Veterans and Military Support": "Veterans",
   "Space Exploration and Federal Investment": "Space"
 };
+const oneWordLabel = t => LABEL[t] || "Topic";
 
-const oneWordLabel = t => TITLE_TO_ONEWORD[t] || "Topic";
-
-// ====== State ======
+// ===== State =====
 const state = {
-  pool: [],             // all topics with ids and metrics
-  queue: [],            // what we’ll actually show
-  index: 0,             // pointer in queue
+  pool: [],            // objects with id, shown, kept
+  queue: [],           // items to present (refs to pool objects)
+  nextUnique: 0,       // pointer into shuffled pool
+  index: 0,            // pointer into queue
   radar: null,
   finalRadar: null,
-  labelsLive: Array(CONFIG.MAX_SPOKES).fill(""),  // live spokes
-  spokeFill: 0                                  // next spoke slot to fill on first-time keeps
+  labelsLive: Array(CONFIG.MAX_SPOKES).fill(""),
+  spokeFill: 0
 };
 
-// ====== DOM ======
+// ===== DOM =====
 const els = {
   progressText: document.getElementById('progressText'),
   barInner: document.getElementById('barInner'),
@@ -149,45 +139,49 @@ const els = {
   restartBtn: document.getElementById('restartBtn')
 };
 
-// ====== Init ======
+// ===== Init =====
 document.addEventListener('DOMContentLoaded', () => {
   bootstrapPool();
-  buildInitialQueue();
+  seedQueue(CONFIG.INITIAL_UNIQUE);
   updateProgress();
   renderCurrentCard();
   initRadar();
   bindControls();
 });
 
-// ====== Pool & Queue ======
+// ===== Pool & Queue =====
 function bootstrapPool() {
-  // Clone with ids and metrics
-  state.pool = TOPICS.map((t, i) => ({
-    ...t,
-    id: i,
-    shown: 0,
-    kept: 0,
-    retestsScheduled: 0,
-    firstKeptOrder: Infinity
-  }));
+  const shuffled = shuffle(TOPICS.map((t, i) => ({
+    ...t, id: i, shown: 0, kept: 0, retestsScheduled: 0, firstKeptOrder: Infinity
+  })));
+  state.pool = shuffled;
+  state.nextUnique = 0;
 }
 
-function buildInitialQueue() {
-  const shuffled = shuffle([...state.pool]);
-  const unique = shuffled.slice(0, CONFIG.MAX_UNIQUE_TO_SHOW);
-  state.queue = [...unique];
-  state.index = 0;
+function seedQueue(count) {
+  const end = Math.min(state.nextUnique + count, state.pool.length);
+  for (let i = state.nextUnique; i < end; i++) state.queue.push(state.pool[i]);
+  state.nextUnique = end;
+}
+
+function maybeExtendQueue() {
+  const needMoreUniques = state.spokeFill < CONFIG.MAX_SPOKES
+    && state.nextUnique < state.pool.length
+    && state.index >= state.queue.length - 2;
+  if (needMoreUniques) seedQueue(CONFIG.CHUNK_UNIQUE);
+  updateProgress();
 }
 
 function scheduleRetest(topic) {
   if (topic.retestsScheduled >= CONFIG.RETESTS_PER_KEEP) return;
-  const offset = randInt(CONFIG.RETEST_OFFSET_MIN, CONFIG.RETEST_OFFSET_MAX);
-  const insertAt = Math.min(state.index + offset, state.queue.length);
-  state.queue.splice(insertAt, 0, topic); // reinsert same object reference
+  const offset = randInt(CONFIG.RETEST_MIN_OFFSET, CONFIG.RETEST_MAX_OFFSET);
+  const pos = Math.min(state.index + offset, state.queue.length);
+  state.queue.splice(pos, 0, topic); // same object reference
   topic.retestsScheduled += 1;
+  updateProgress();
 }
 
-// ====== UI helpers ======
+// ===== UI helpers =====
 function updateProgress() {
   const total = state.queue.length;
   const current = Math.min(state.index, total);
@@ -197,12 +191,12 @@ function updateProgress() {
 }
 
 function renderCurrentCard() {
-  // End conditions:
-  // 1) We have 8 topics with kept >= 2 (confirmed), or
-  // 2) We ran out of queue
-  if (confirmedCount() >= CONFIG.MAX_SPOKES || state.index >= state.queue.length) {
-    showSummary();
-    return;
+  if (state.spokeFill >= CONFIG.MAX_SPOKES) { showSummary(); return; }
+
+  // If we ran out of queue, try to extend before ending
+  if (state.index >= state.queue.length) {
+    maybeExtendQueue();
+    if (state.index >= state.queue.length) { showSummary(); return; }
   }
 
   const t = state.queue[state.index];
@@ -221,95 +215,80 @@ function renderCurrentCard() {
 function bindControls() {
   els.skipBtn.addEventListener('click', () => animateAnd(handleSkip, -1));
   els.keepBtn.addEventListener('click', () => animateAnd(handleKeep, 1));
-
   window.addEventListener('keydown', e => {
     if (!els.summary.classList.contains('hidden')) return;
     if (e.key === 'ArrowLeft') animateAnd(handleSkip, -1);
     if (e.key === 'ArrowRight') animateAnd(handleKeep, 1);
   });
-
   els.restartBtn.addEventListener('click', restart);
 }
 
 function attachSwipe(card) {
   let startX = 0, currentX = 0, dragging = false;
   const threshold = 80;
-
   const onDown = e => { dragging = true; startX = getX(e); currentX = startX; card.style.transition = 'none'; };
-  const onMove = e => {
-    if (!dragging) return;
-    currentX = getX(e);
-    const dx = currentX - startX;
-    card.style.transform = `translateX(${dx}px) rotate(${dx * 0.05}deg)`;
-    card.style.opacity = `${Math.max(0.4, 1 - Math.abs(dx) / 400)}`;
-  };
+  const onMove = e => { if (!dragging) return; currentX = getX(e); const dx = currentX - startX; card.style.transform = `translateX(${dx}px) rotate(${dx*0.05}deg)`; card.style.opacity = `${Math.max(0.4, 1 - Math.abs(dx)/400)}`; };
   const onUp = () => {
-    if (!dragging) return;
-    dragging = false;
+    if (!dragging) return; dragging = false;
     const dx = currentX - startX;
     card.style.transition = 'transform 160ms ease, opacity 160ms ease';
     if (dx > threshold) { card.style.transform = 'translateX(480px) rotate(12deg)'; card.style.opacity = '0'; setTimeout(handleKeep, 150); }
     else if (dx < -threshold) { card.style.transform = 'translateX(-480px) rotate(-12deg)'; card.style.opacity = '0'; setTimeout(handleSkip, 150); }
     else { card.style.transform = 'translateX(0px) rotate(0deg)'; card.style.opacity = '1'; }
   };
-
   card.addEventListener('mousedown', onDown);
   window.addEventListener('mousemove', onMove);
   window.addEventListener('mouseup', onUp);
-
   card.addEventListener('touchstart', onDown, { passive: true });
   window.addEventListener('touchmove', onMove, { passive: true });
   window.addEventListener('touchend', onUp);
-
   function getX(e) { return e.touches ? e.touches[0].clientX : e.clientX; }
 }
 
-function animateAnd(cb, dir = 1) {
+function animateAnd(cb, dir=1) {
   const card = document.getElementById('topicCard');
   if (!card) return cb();
   card.style.transition = 'transform 160ms ease, opacity 160ms ease';
-  card.style.transform = `translateX(${dir * 480}px) rotate(${dir * 12}deg)`;
+  card.style.transform = `translateX(${dir*480}px) rotate(${dir*12}deg)`;
   card.style.opacity = '0';
   setTimeout(cb, 150);
 }
 
-// ====== Keep/Skip ======
+// ===== Keep/Skip =====
 function handleSkip() {
   const t = state.queue[state.index];
   t.shown += 1;
   state.index += 1;
+  maybeExtendQueue();
   updateProgress();
   renderCurrentCard();
 }
 
 function handleKeep() {
   const t = state.queue[state.index];
-
   t.shown += 1;
+  const firstTimeKeep = t.kept === 0;
   t.kept += 1;
   if (t.firstKeptOrder === Infinity) t.firstKeptOrder = performance.now();
 
-  // On first-time keep, fill a live spoke if any left
-  if (t.kept === 1 && state.spokeFill < CONFIG.MAX_SPOKES) {
+  if (firstTimeKeep && state.spokeFill < CONFIG.MAX_SPOKES) {
     setLiveSpoke(state.spokeFill, oneWordLabel(t.title));
     state.spokeFill += 1;
+    // schedule retest(s) now that the user showed interest
+    for (let i = 0; i < CONFIG.RETESTS_PER_KEEP; i++) scheduleRetest(t);
   }
 
-  // Schedule one retest a few cards later
-  scheduleRetest(t);
-
   state.index += 1;
+  maybeExtendQueue();
   updateProgress();
 
-  // If we already have 8 confirmed keeps, finish
-  if (confirmedCount() >= CONFIG.MAX_SPOKES) { showSummary(); return; }
-
+  if (state.spokeFill >= CONFIG.MAX_SPOKES) { showSummary(); return; }
   renderCurrentCard();
 }
 
-// ====== Live radar ======
+// ===== Live radar =====
 function initRadar() {
-  // Fixed canvas size to avoid reflow
+  // Fixed canvas so labels don’t reflow
   els.radarCanvas.width = 400;
   els.radarCanvas.height = 400;
   els.radarCanvas.style.width = '400px';
@@ -327,8 +306,8 @@ function initRadar() {
         pointRadius: 0,
         pointHitRadius: 0,
         pointHoverRadius: 0,
-        backgroundColor: 'rgba(59, 130, 246, 0.10)',
-        borderColor: 'rgba(59, 130, 246, 0.85)',
+        backgroundColor: 'rgba(59,130,246,0.10)',
+        borderColor: 'rgba(59,130,246,0.85)',
         borderWidth: 2
       }]
     },
@@ -340,15 +319,12 @@ function initRadar() {
       elements: { point: { radius: 0, hitRadius: 0, hoverRadius: 0 } },
       scales: {
         r: {
-          min: 0,
-          max: 1,
+          min: 0, max: 1,
           ticks: { display: false },
           grid: { circular: true, color: 'rgba(255,255,255,0.10)' },
           angleLines: { color: 'rgba(255,255,255,0.18)' },
           pointLabels: {
-            display: true,
-            color: '#e5e7eb',
-            padding: 12,
+            display: true, color: '#e5e7eb', padding: 12,
             font: { size: 16, weight: '700', family: 'system-ui, -apple-system, Segoe UI, Roboto, Arial' }
           }
         }
@@ -366,33 +342,32 @@ function setLiveSpoke(spokeIndex, label) {
   state.radar.update('none');
 }
 
-// ====== Summary ======
-function confirmedCount() {
-  // Topics kept at least twice count as "confirmed"
-  return state.pool.filter(t => t.kept >= 2).length;
-}
-
-function topEightByScore() {
-  // Rank by kept desc, then firstKeptOrder asc, then shown asc
-  const ranked = [...state.pool]
+// ===== Summary =====
+function showSummary() {
+  // Rank winners by kept desc, then earliest first keep, then fewest shown
+  const winners = [...state.pool]
     .filter(t => t.kept > 0)
     .sort((a, b) => {
       if (b.kept !== a.kept) return b.kept - a.kept;
       if (a.firstKeptOrder !== b.firstKeptOrder) return a.firstKeptOrder - b.firstKeptOrder;
       return a.shown - b.shown;
-    });
-  return ranked.slice(0, CONFIG.MAX_SPOKES);
-}
+    })
+    .slice(0, CONFIG.MAX_SPOKES);
 
-function showSummary() {
-  const winners = topEightByScore();
+  // If user never kept 8, fill remaining from most seen topics
+  if (winners.length < CONFIG.MAX_SPOKES) {
+    const fillers = [...state.pool]
+      .filter(t => !winners.includes(t))
+      .sort((a, b) => b.shown - a.shown)
+      .slice(0, CONFIG.MAX_SPOKES - winners.length);
+    winners.push(...fillers);
+  }
 
-  // Fill list
   els.summaryList.innerHTML = winners
     .map(t => `<li><i class="${t.icon}" aria-hidden="true"></i> ${t.title}</li>`)
     .join('');
 
-  // Fixed size to avoid squish
+  // Final chart fixed size to avoid squish
   els.finalRadar.width = 500;
   els.finalRadar.height = 500;
   els.finalRadar.style.width = '500px';
@@ -414,8 +389,8 @@ function showSummary() {
         pointRadius: 0,
         pointHitRadius: 0,
         pointHoverRadius: 0,
-        backgroundColor: 'rgba(59, 130, 246, 0.20)',
-        borderColor: 'rgba(59, 130, 246, 1)',
+        backgroundColor: 'rgba(59,130,246,0.20)',
+        borderColor: 'rgba(59,130,246,1)',
         borderWidth: 3
       }]
     },
@@ -427,15 +402,12 @@ function showSummary() {
       elements: { point: { radius: 0, hitRadius: 0, hoverRadius: 0 } },
       scales: {
         r: {
-          min: 0,
-          max: 1,
+          min: 0, max: 1,
           ticks: { display: false },
           grid: { circular: true, color: 'rgba(255,255,255,0.10)' },
           angleLines: { color: 'rgba(255,255,255,0.18)' },
           pointLabels: {
-            display: true,
-            color: '#e5e7eb',
-            padding: 12,
+            display: true, color: '#e5e7eb', padding: 12,
             font: { size: 16, weight: '700', family: 'system-ui, -apple-system, Segoe UI, Roboto, Arial' }
           }
         }
@@ -447,13 +419,18 @@ function showSummary() {
   els.summary.classList.remove('hidden');
 }
 
+// ===== Restart =====
 function restart() {
-  bootstrapPool();
-  buildInitialQueue();
+  // reset state
+  state.queue = [];
+  state.index = 0;
   state.labelsLive = Array(CONFIG.MAX_SPOKES).fill("");
   state.spokeFill = 0;
 
-  // Reset live chart
+  bootstrapPool();
+  seedQueue(CONFIG.INITIAL_UNIQUE);
+
+  // reset live radar
   if (state.radar) {
     state.radar.data.labels = [...state.labelsLive];
     state.radar.data.datasets[0].data = Array(CONFIG.MAX_SPOKES).fill(0);
@@ -465,7 +442,7 @@ function restart() {
   renderCurrentCard();
 }
 
-// ====== Utils ======
+// ===== Utils =====
 function shuffle(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
