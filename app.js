@@ -393,7 +393,7 @@ function restart() {
   state.topics = [...TOPICS];
   shuffle(state.topics);
 
-  state.labelsLive = Array(state.maxSpokes).fill("");
+  state.labelsLive = Array(state.maxSpokes).fill("•"); // Reset to placeholder dots
   if (state.radar) {
     state.radar.data.labels = [...state.labelsLive];
     state.radar.data.datasets[0].data = Array(state.maxSpokes).fill(0);
